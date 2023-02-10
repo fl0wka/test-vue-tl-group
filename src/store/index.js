@@ -6,11 +6,14 @@ export default createStore({
     searchStatus: '',
     searchFrom: '',
     searchBefore: '',
+    sortType: 'asc',
+    sortColumn: 'number',
+
     columns: [
-      { number: 'Место', sortType: 'asc' },
-      { login: 'Логин', sortType: 'asc' },
-      { confirmedOrders: 'Подтвержденные заказы', sortType: 'asc' },
-      { status: 'Статус', sortType: 'asc' },
+      { number: 'Место' },
+      { login: 'Логин' },
+      { confirmedOrders: 'Подтвержденные заказы' },
+      { status: 'Статус' },
     ],
     users: [
       {
@@ -31,7 +34,12 @@ export default createStore({
         confirmedOrders: 98,
         status: 'Конкурент минздрава',
       },
-      { number: 4, login: 'dog@mail.ru', confirmedOrders: 64, status: 'рыбак' },
+      {
+        number: 4,
+        login: 'dog@mail.ru',
+        confirmedOrders: 64,
+        status: 'рыбак',
+      },
       {
         number: 5,
         login: 'nightmare@mail.ru',
@@ -76,15 +84,22 @@ export default createStore({
         return getters.filteredStatus;
       }
     },
-    sortBy: (state) => (key) => {
-      // Создаю новый массив со значениями по переданному ключу
-      const newArrUsersValue = state.users.map((user) => user[key]);
-      // Делаю проверку на тип данных в массиве и от этого запускаю определенный вид сортировки
-      if (newArrUsersValue.some((user) => typeof user === 'string')) {
-        return state.users.sort((a, b) => a[key].localeCompare(b[key]));
-      } else {
-        return state.users.sort((a, b) => a[key] - b[key]);
-      }
+    queryUrl(state) {
+      let query = {};
+
+      state.searchLogin
+        ? (query.login = state.searchLogin)
+        : delete query.login;
+      state.searchStatus
+        ? (query.status = state.searchStatus)
+        : delete query.status;
+      state.searchFrom ? (query.from = state.searchFrom) : delete query.from;
+      state.searchBefore
+        ? (query.before = state.searchBefore)
+        : delete query.before;
+      query.sort = `${state.sortColumn},${state.sortType}`;
+
+      return query;
     },
   },
   mutations: {
@@ -100,7 +115,41 @@ export default createStore({
     setSearchBefore(state, searchBefore) {
       state.searchBefore = searchBefore;
     },
+    setSortType(state, sortType) {
+      state.sortType = sortType;
+    },
+    setSortColumn(state, titleColumn) {
+      state.sortColumn = titleColumn;
+    },
   },
-  actions: {},
+  actions: {
+    sortBy({ state, commit }, key) {
+      commit('setSortColumn', key);
+      if (state.sortType === 'desc') {
+        commit('setSortType', 'asc');
+        state.users.sort((a, b) => {
+          return a[key] > b[key] ? 1 : -1;
+        });
+      } else {
+        commit('setSortType', 'desc');
+        state.users.sort((a, b) => {
+          return a[key] < b[key] ? 1 : -1;
+        });
+      }
+    },
+    clearInput({ state, commit }) {
+      if (
+        state.searchLogin ||
+        state.searchStatus ||
+        state.searchFrom ||
+        state.searchBefore
+      ) {
+        commit('setSearchLogin', '');
+        commit('setSearchStatus', '');
+        commit('setSearchFrom', '');
+        commit('setSearchBefore', '');
+      }
+    },
+  },
   modules: {},
 });
